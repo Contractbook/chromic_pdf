@@ -4,11 +4,8 @@ defmodule ChromicPDF.ResetTarget do
   @moduledoc false
 
   import ChromicPDF.ProtocolMacros
-  import ChromicPDF.Utils, only: [priv_asset: 1]
 
-  defp blank_url do
-    "file://#{priv_asset("blank.html")}"
-  end
+  @blank_url "about:blank"
 
   steps do
     call(:reset_history, "Page.resetNavigationHistory", [], %{})
@@ -19,7 +16,7 @@ defmodule ChromicPDF.ResetTarget do
       await_response(:cleared, [])
     end
 
-    call(:blank, "Page.navigate", [], %{"url" => blank_url()})
+    call(:blank, "Page.navigate", [], %{"url" => @blank_url})
     await_response(:blanked, ["frameId"])
     await_notification(:fsl_after_blank, "Page.frameStoppedLoading", ["frameId"], [])
   end
