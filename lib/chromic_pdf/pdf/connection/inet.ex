@@ -32,9 +32,10 @@ if Code.ensure_loaded?(WebSockex) do
 
     @impl ChromicPDF.Connection
     def handle_init(opts) do
+      {host, port} = Keyword.fetch!(opts, :chrome_address)
+
       {:ok, ws_pid} =
-        opts
-        |> Keyword.fetch!(:chrome_address)
+        {host, port}
         |> websocket_debugger_url()
         |> Websocket.start_link()
 
@@ -66,10 +67,16 @@ if Code.ensure_loaded?(WebSockex) do
           body
           |> Jason.decode!()
           |> Map.fetch!("webSocketDebuggerUrl")
+          |> rewrite_websocket_url(host, port)
 
         {:error, {:failed_connect, _}} ->
           raise ConnectionLostError, "failed to connect to #{url}"
       end
+    end
+
+    defp rewrite_websocket_url(url, host, port) do
+      uri = URI.parse(url)
+      URI.to_string(%{uri | host: to_string(host), port: port})
     end
   end
 end
