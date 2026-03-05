@@ -59,7 +59,15 @@ if Code.ensure_loaded?(WebSockex) do
       :inets.start()
 
       url = String.to_charlist("http://#{host}:#{port}/json/version")
-      headers = [{~c"accept", ~c"application/json"}, {~c"host", ~c"localhost"}]
+
+      # Close the HTTP connection after the response to prevent keep-alive
+      # from interfering with the subsequent WebSocket connection through
+      # the same nginx reverse proxy.
+      headers = [
+        {~c"accept", ~c"application/json"},
+        {~c"host", ~c"localhost"},
+        {~c"connection", ~c"close"}
+      ]
       http_request_opts = [ssl: [verify: :verify_none]]
 
       case :httpc.request(:get, {url, headers}, http_request_opts, []) do
