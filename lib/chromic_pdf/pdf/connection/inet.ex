@@ -16,8 +16,8 @@ if Code.ensure_loaded?(WebSockex) do
       def start_link(websocket_debugger_url) do
         require Logger
         Logger.info("Websocket.start_link: url=#{websocket_debugger_url} caller=#{inspect(self())}")
-        conn = WebSockex.Conn.parse_url(websocket_debugger_url)
-        Logger.info("Websocket.start_link: parsed conn.host=#{inspect(conn.host)} conn.port=#{inspect(conn.port)}")
+        parsed = URI.parse(websocket_debugger_url)
+        Logger.info("Websocket.start_link: URI.parse => host=#{inspect(parsed.host)} port=#{inspect(parsed.port)} scheme=#{inspect(parsed.scheme)}")
         result = WebSockex.start_link(websocket_debugger_url, __MODULE__, %{parent_pid: self()})
         Logger.info("Websocket.start_link: result=#{inspect(result)}")
         result
