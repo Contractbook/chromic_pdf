@@ -14,7 +14,13 @@ if Code.ensure_loaded?(WebSockex) do
 
       @spec start_link(binary()) :: GenServer.on_start()
       def start_link(websocket_debugger_url) do
-        WebSockex.start_link(websocket_debugger_url, __MODULE__, %{parent_pid: self()})
+        require Logger
+        Logger.info("Websocket.start_link: url=#{websocket_debugger_url} caller=#{inspect(self())}")
+        conn = WebSockex.Conn.parse_url(websocket_debugger_url)
+        Logger.info("Websocket.start_link: parsed conn.host=#{inspect(conn.host)} conn.port=#{inspect(conn.port)}")
+        result = WebSockex.start_link(websocket_debugger_url, __MODULE__, %{parent_pid: self()})
+        Logger.info("Websocket.start_link: result=#{inspect(result)}")
+        result
       end
 
       @impl WebSockex
@@ -32,13 +38,26 @@ if Code.ensure_loaded?(WebSockex) do
 
     @impl ChromicPDF.Connection
     def handle_init(opts) do
+      require Logger
       {host, port} = Keyword.fetch!(opts, :chrome_address)
+      Logger.info("Connection.Inet.handle_init: host=#{inspect(host)} port=#{inspect(port)} self=#{inspect(self())}")
 
-      {:ok, ws_pid} =
-        {host, port}
-        |> websocket_debugger_url()
-        |> Websocket.start_link()
+      ws_url = websocket_debugger_url({host, port})
+      Logger.info("Connection.Inet.handle_init: ws_url=#{ws_url}")
 
+      # Debug: test gen_tcp from this process
+      tcp_res = :gen_tcp.connect(String.to_charlist(host), port, [:binary, active: false, packet: 0], 5000)
+      Logger.info("Connection.Inet.handle_init: gen_tcp test=#{inspect(tcp_res)}")
+      case tcp_res do
+        {:ok, s} -> :gen_tcp.close(s)
+        _ -> :ok
+      end
+
+      Logger.info("Connection.Inet.handle_init: calling Websocket.start_link...")
+      ws_result = Websocket.start_link(ws_url)
+      Logger.info("Connection.Inet.handle_init: Websocket.start_link=#{inspect(ws_result)}")
+
+      {:ok, ws_pid} = ws_result
       {:ok, %{ws_pid: ws_pid}}
     end
 
